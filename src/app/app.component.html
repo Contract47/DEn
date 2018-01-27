@@ -1,0 +1,122 @@
+<!-- <canvas id="backgroundCanvas"></canvas>
+<canvas id="avatarCanvas"
+        (mousedown)="startDrawing($event)"
+        (mousemove)="draw($event)"
+        (mouseup)="stopDrawing($event)"
+></canvas>
+<canvas id="animationCanvas"></canvas> -->
+
+<img id="bgImg"/>
+<div *ngIf="avatarDesign">
+    <svg id="backgroundCanvas"></svg>
+
+    <svg id="avatarCanvas"
+            (mousedown)="startDrawing($event)"
+            (mousemove)="draw($event)"
+            (mouseup)="stopDrawing($event)"
+    >
+        <svg:g *ngFor="let part of parts" app-part [part]="avatarDesign.parts[part]" [attr.transform]="transform"/>
+    </svg>
+    <svg id="animationCanvas" *ngIf="shownTab=='animate' && !animationsHidden"    
+        (mousedown)="startDrawingAnimation($event)"
+        (mousemove)="drawAnimation($event)"
+        (mouseup)="stopDrawingAnimation($event)"
+        (contextmenu)="false"
+    >
+        <svg:polyline *ngFor="let animation of animations"
+            [attr.points]="animation._path"
+            [attr.style]="animationStyle"
+            (mouseover)="setHovered(animation)"/>
+
+        <ng-template 
+            ngFor let-coord [ngForOf]="hoveredAnimation? hoveredAnimation.path : []" let-i="index">
+            <!-- <svg:circle [attr.x]="100" [attr.y]="100" [attr.r]="10"></svg:circle> -->
+            <circle *ngIf="i%2 === 0"
+                [attr.cx]="hoveredAnimation.path[i]"
+                [attr.cy]="hoveredAnimation.path[i+1]"
+                [attr.r]="8"
+                [attr.style]="animationDotStyle(hoveredAnimation.path[i],hoveredAnimation.path[i+1])"
+                (contextmenu)="selectCoord(hoveredAnimation,hoveredAnimation.path[i],hoveredAnimation.path[i+1],$event)"
+            ></circle>
+        </ng-template>
+    </svg>
+    <input *ngIf="selectedAnimationCoord" class="coordAngle" value="asdf"/>
+
+    <div id="controls">
+        <div id="tabButtons">
+            <button id="drawButton" class="selected" (click)="shownTab='draw'">Draw</button>
+            <button id="animateButton" (click)="editAnimation()">Animate</button>
+        </div>
+        <div id="drawTab" *ngIf="shownTab=='draw'">
+            <div>
+                <input [(ngModel)]="bgImg"/>
+                <input [(ngModel)]="scaleFactor"/>
+                <button (click)="scale()">Scale</button>
+                <input id="newGroupName" [(ngModel)]="newGroupName"/>
+                <button id="groupBtn" (click)="group()">Group</button>
+                <button id="mergeBtn" (click)="merge()">Merge</button>
+                <input id="offset"/>
+                <button id="offsetBtn" (click)="offset()">Offset</button>
+                <button id="mirrorBtn" (click)="mirror()">Mirror</button>
+                <button id="reduceBtn" (click)="reduce()">Reduce</button>
+                <input id="posX" [(ngModel)]="avatarDesign.position[0]"/>
+                <input id="posY" [(ngModel)]="avatarDesign.position[1]"/>
+            </div>
+            <div>
+                <label>group</label>
+                <label>part</label>
+                <label>fill</label>
+                <label>stroke</label>
+                <label>posx</label>
+                <label>posy</label>
+                <label>angCtr</label>
+                <label>angle</label>
+                <label>zindex</label>
+                <label>shape</label>
+            </div>
+            <div id="shapes">
+                <div    *ngFor="let part of parts" app-part-data 
+                        [part]="avatarDesign.parts[part]"
+                        [parentPart]="avatarDesign.parts"
+                        [name]="part"></div>
+            </div>			
+        </div>
+        <div id="animationTab" *ngIf="shownTab=='animate'">
+            <div>
+                <select [(ngModel)]="animations">
+                    <option *ngFor="let name of availableAnimationNames"
+                            [ngValue]="availableAnimations[name]">
+                                {{name}}
+                    </option>
+                </select>
+                <button id="addAnimationBtn" (click)="addAnimation()">Add Animation</button>
+                <button (click)="playSelected()">Play Selected</button>
+                <button (click)="animationsHidden = !animationsHidden">Hide Anim.</button>
+            </div>
+            <div>
+
+            <div id="animationLabels">
+                <label>selected</label>
+                <label>part</label>
+                <label>path</label>
+                <label>dur</label>
+                <label>delay</label>
+                <label>angCtr</label>
+                <label>angAng</label>
+                <label>zindex</label>
+            </div>
+            <div *ngFor="let animation of animations">
+                <input [(ngModel)]="animation._selected" type="checkbox"/>
+                <input [(ngModel)]="animation.part"/>
+                <input [(ngModel)]="animation._path"/>
+                <input [(ngModel)]="animation._duration"/>
+                <input [(ngModel)]="animation._delay"/>
+                    <input [(ngModel)]="animation._angleCenter"/>
+                    <input [(ngModel)]="animation._angle"/>
+                <button (click)="play(animation)">Play</button>
+                <button (click)="copyAnimation(animation)">Copy</button>
+                <button (click)="deleteAnimation(animation)">Del</button>
+            </div>
+        </div>
+    </div>
+</div>   

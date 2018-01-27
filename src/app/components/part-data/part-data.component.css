@@ -1,0 +1,9 @@
+input{
+    width: 50px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+.subpart{
+    margin-left: 10px;
+}

@@ -1,0 +1,16 @@
+<svg:polyline *ngIf="part.shape && !part.hidden"
+  [attr.points]="part.shape.join(',')"
+  [attr.style]="style"
+  [attr.transform]="transform"
+/>
+
+<svg:g *ngFor="let subpart of subparts" app-part [part]="part.parts[subpart]" [attr.transform]="transform"/>
+
+<svg *ngIf="gradient">
+  <linearGradient id="linear">
+     <!-- x1="0%" y1="0%" x2="100%" y2="0%"> -->
+    <stop offset="0%"   stop-color="#05a"/>
+    <stop offset="50%"  stop-color="#a55"/>
+    <stop offset="100%" stop-color="#0a5"/>
+  </linearGradient>
+</svg>
