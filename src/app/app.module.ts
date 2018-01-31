@@ -7,6 +7,7 @@ import { AppComponent } from './app.component';
 import { PartComponent } from './components/part/part.component';
 import { PartDataComponent } from './components/part-data/part-data.component';
 
+
 @NgModule({
   declarations: [
     AppComponent,PartComponent,PartDataComponent

@@ -3,6 +3,9 @@
     height: 100%;
     position: absolute;
 }
+#camCanvas,#camVideo{
+
+}
 canvas{
     position:   absolute;
     top: 	    0px;
@@ -45,6 +48,11 @@ svg{
 }
 #animationTab{
     background: blue;
+    height: 100%;
+}
+
+#testingTab{
+    background: #600;
     height: 100%;
 }
 

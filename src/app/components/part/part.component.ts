@@ -21,13 +21,27 @@ export class PartComponent {
   }
 
   get subparts(){
-    if(this.part.hidden) return null;
-    return this.part.parts? Object.keys(this.part.parts) : null;
+    if(this.part.hidden || !this.part.parts) return null;
+
+    var parts = this.part.parts;
+    var keys  = Object.keys(parts);
+    
+    keys = keys.sort(function(a,b) {
+      return  ( (parts[a].zindex || 0) > (parts[b].zindex || 0) )? 1 : 
+              ( (parts[b].zindex || 0) > (parts[a].zindex || 0) )? -1 :
+              0;
+    });
+    
+    return keys;
   }
 
   get style(){
+    var fill = this.part.fill;
+
+    if(fill && fill.indexOf('linear-gradient') !== -1) fill = "url(#linear)";
+
     return this.sanitizer.bypassSecurityTrustStyle(
-            'fill:'+(this.part.fill || 'black')+';stroke:'+(this.part.stroke||'black')+';stroke-width:3'
+            'fill:'+(fill || 'black')+';stroke:'+(this.part.stroke||'black')+';stroke-width:3'
           );
   }
 
@@ -50,7 +64,19 @@ export class PartComponent {
   }
   
   get gradient(){
-    return true;
+    return this.part.fill && this.part.fill.indexOf('linear-gradient') !== -1;
+  }
+
+  get offsetColors(){
+    var tmp = this.part.fill.match('linear-gradient\\(([^\\)]*)\\)');
+
+    if(!tmp) return null;
+
+    var colors = tmp[1].split(',');
+
+    for(let i in colors) colors[i] = colors[i].trim().split(/[\s]+/);
+
+    return colors;
   }
 
 }

@@ -6,6 +6,9 @@
 ></canvas>
 <canvas id="animationCanvas"></canvas> -->
 
+<canvas id="camCanvas" width="320" height="240" style="display:none"></canvas>
+<video id="camVideo" autoplay loop style="display:none" ></video>
+
 <img id="bgImg"/>
 <div *ngIf="avatarDesign">
     <svg id="backgroundCanvas"></svg>
@@ -23,10 +26,16 @@
         (mouseup)="stopDrawingAnimation($event)"
         (contextmenu)="false"
     >
-        <svg:polyline *ngFor="let animation of animations"
-            [attr.points]="animation._path"
-            [attr.style]="animationStyle"
-            (mouseover)="setHovered(animation)"/>
+
+        <ng-template ngFor let-animation [ngForOf]="animations">
+            <svg:polyline
+                [attr.points]="animation._path"
+                [attr.style]="animationStyle"
+                (mouseover)="setHovered(animation)"/>
+        
+            <!-- Animation Ghosts -->
+            <svg:g app-part [part]="animation._ghost" [attr.transform]="transform"/>
+        </ng-template>
 
         <ng-template 
             ngFor let-coord [ngForOf]="hoveredAnimation? hoveredAnimation.path : []" let-i="index">
@@ -44,8 +53,9 @@
 
     <div id="controls">
         <div id="tabButtons">
-            <button id="drawButton" class="selected" (click)="shownTab='draw'">Draw</button>
-            <button id="animateButton" (click)="editAnimation()">Animate</button>
+            <button id="drawButton" class="selected" (click)="goToTab('draw')">Draw</button>
+            <button id="animateButton"  (click)="goToTab('animate')">Animate</button>
+            <button id="testButton"     (click)="goToTab('testing')">Test</button>
         </div>
         <div id="drawTab" *ngIf="shownTab=='draw'">
             <div>
@@ -94,29 +104,33 @@
                 <button (click)="animationsHidden = !animationsHidden">Hide Anim.</button>
             </div>
             <div>
-
-            <div id="animationLabels">
-                <label>selected</label>
-                <label>part</label>
-                <label>path</label>
-                <label>dur</label>
-                <label>delay</label>
-                <label>angCtr</label>
-                <label>angAng</label>
-                <label>zindex</label>
-            </div>
-            <div *ngFor="let animation of animations">
-                <input [(ngModel)]="animation._selected" type="checkbox"/>
-                <input [(ngModel)]="animation.part"/>
-                <input [(ngModel)]="animation._path"/>
-                <input [(ngModel)]="animation._duration"/>
-                <input [(ngModel)]="animation._delay"/>
-                    <input [(ngModel)]="animation._angleCenter"/>
-                    <input [(ngModel)]="animation._angle"/>
-                <button (click)="play(animation)">Play</button>
-                <button (click)="copyAnimation(animation)">Copy</button>
-                <button (click)="deleteAnimation(animation)">Del</button>
+                <div id="animationLabels">
+                    <label>selected</label>
+                    <label>part</label>
+                    <label>path</label>
+                    <label>dur</label>
+                    <label>delay</label>
+                    <label>angCtr</label>
+                    <label>angAng</label>
+                    <label>zindex</label>
+                </div>
+                <div *ngFor="let animation of animations">
+                    <input [(ngModel)]="animation._selected" type="checkbox"/>
+                    <input [(ngModel)]="animation.part"/>
+                    <input [(ngModel)]="animation._path"/>
+                    <input [(ngModel)]="animation._duration"/>
+                    <input [(ngModel)]="animation._delay"/>
+                        <input [(ngModel)]="animation._angleCenter"/>
+                        <input [(ngModel)]="animation._angle"/>
+                    <button (click)="play(animation)">Play</button>
+                    <button (click)="copyAnimation(animation)">Copy</button>
+                    <button (click)="deleteAnimation(animation)">Del</button>
+                </div>
             </div>
         </div>
+
+        <div id="testingTab" *ngIf="shownTab=='testing'">
+            <button *ngFor="let animation of availableAnimationNames" (click)="playSet(animation)">{{animation}}</button>
+        </div>
     </div>
-</div>   
+</div>

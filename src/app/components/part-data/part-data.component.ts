@@ -72,6 +72,13 @@ export class PartDataComponent implements OnInit {
     this.part.angleCenter = pt.split(',').map(Number);
   }
   
+  get zindex(){
+    return Number(this.part.zindex||0);
+  }
+  set zindex(zindex){
+    this.part.zindex = Number(zindex);
+  }
+  
   copyPart(){
     this.parentPart[this.name+'Copy'] = JSON.parse(JSON.stringify(this.part));
   }

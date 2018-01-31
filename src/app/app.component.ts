@@ -1,5 +1,5 @@
 import { Http, Response } from '@angular/http';
-import { Component, OnInit, group } from '@angular/core';
+import { Component, OnInit, group, AfterViewInit } from '@angular/core';
 import { Engine } from './classes/engine';
 import { DomSanitizer } from '@angular/platform-browser';
 import 'rxjs/add/operator/map';
@@ -34,10 +34,6 @@ export class AppComponent {
     return Object.keys(this.availableAnimations);
   }
 
-  _asdf;
-  set asdf(asdf){ console.log(asdf); this._asdf = asdf }
-  get asdf(){ return this._asdf; }
-
   availableAnimations = {};
 
   avatarDesign;
@@ -64,6 +60,7 @@ export class AppComponent {
   }
 
   constructor(private http:Http, private sanitizer:DomSanitizer){
+    
      // Function variant (script with function allows free manipulation of avatars at the cost of complexity)
      this.http.get("http://raynesworld.com/testing/DerpEngine/Avatars/Rayne.json").
      map( response => response.json()).
@@ -92,53 +89,80 @@ export class AppComponent {
   }
 
   ngOnInit(){
-
-    // var derpEngine = new Engine(this.http);
-
-    // (<any>$('#avatarCanvas')[0]).getContext("2d");
-    
     // resize the canvas to fill browser window dynamically
-    window.addEventListener('resize', resizeCanvas, false);
+    // window.addEventListener('resize', resizeCanvas, false);
 
-    function resizeCanvas() {
+    // function resizeCanvas() {
 			
-			$('canvas').each(function(){
-        this['width']  = window.innerWidth;
-        this['height'] = window.innerHeight;
-      })
-    }
-    resizeCanvas();
+		// 	$('canvas').each(function(){
+    //     this['width']  = window.innerWidth;
+    //     this['height'] = window.innerHeight;
+    //   })
+    // }
+    // resizeCanvas();
+  }
+  
+  ngAfterViewInit(){
+    this.trackFace();
   }
 
-  editAnimation(){
-    this.shownTab='animate';
-    this.avatarDesignCopy = JSON.stringify(this.avatarDesign);
+  goToTab(tabName){
+    // switch(tabName){
+    //   case 'animate':  break;
+    // }
+
+    if(this.shownTab == 'draw' && tabName !== this.shownTab){
+      this.avatarDesignCopy = JSON.stringify(this.avatarDesign);
+    }else if(tabName == 'draw'){
+      this.avatarDesign = JSON.parse(this.avatarDesignCopy);
+    }
+
+    this.shownTab=tabName;
   }
 
   startDrawing($event){
     this.isDrawing   = true;
-    this.currentPart = {
-      shape:[], 
-      fill: "none", 
-      stroke: "black", 
-      position: [0,0],
-      angle: null,
-      angleCenter: null
-    };
 
-    var limbcnt = Object.keys(this.avatarDesign.parts).length;
-    this.avatarDesign.parts["Part"+limbcnt] = this.currentPart;
+    var parts = this.getSelectedParts(this.avatarDesign.parts);
+
+    if(parts.length == 0){
+      this.currentPart = {
+        shape:[], 
+        fill: "none", 
+        stroke: "black", 
+        position: [0,0],
+        angle: null,
+        angleCenter: null
+      };
+
+      var limbcnt = Object.keys(this.avatarDesign.parts).length;
+      this.avatarDesign.parts["Part"+limbcnt] = this.currentPart;
+    }else{
+      for(let i in parts){
+        parts[i].part.position   = [0,0]; 
+        parts[i].part.shape = [];
+      }
+    }
   }
 
   draw($event){
     if(!this.isDrawing || (this.animationsHidden && this.shownTab == "animate") ) return;
 
-    if($event.targetTouches){
-      this.currentPart.shape.push($event.targetTouches[0].pageX - this.avatarDesign.position[0]);
-      this.currentPart.shape.push($event.targetTouches[0].pageY - this.avatarDesign.position[1]);      
-    }else{
-      this.currentPart.shape.push($event.offsetX - this.avatarDesign.position[0]);
-      this.currentPart.shape.push($event.offsetY - this.avatarDesign.position[1]);
+    var parts = this.getSelectedParts(this.avatarDesign.parts);
+
+    if(parts.length == 0) parts = [this.currentPart];
+
+    for(let i in parts){
+
+      let part = (parts[i].part || parts[i]);
+
+      if($event.targetTouches){
+        part.shape.push($event.targetTouches[0].pageX - this.avatarDesign.position[0]);
+        part.shape.push($event.targetTouches[0].pageY - this.avatarDesign.position[1]);      
+      }else{
+        part.shape.push($event.offsetX - this.avatarDesign.position[0]);
+        part.shape.push($event.offsetY - this.avatarDesign.position[1]);
+      }
     }
   }
 
@@ -333,10 +357,11 @@ export class AppComponent {
       
       if(selected){
         for(let i in selected){
-          var shape = selected[i].part.shape;
-
+          var shape   = selected[i].part.shape;
+          
           if(shape){           
-            for(let j=0; j<shape.length; j+=2) shape[j] = -shape[j];
+            var offset  = shape[0];
+            for(let j=0; j<shape.length; j+=2) shape[j] = -shape[j] +2*offset;
           }
 
           if(selected[i].part.parts) this.mirror(selected[i].part.parts,true);
@@ -439,6 +464,7 @@ export class AppComponent {
   }
 
   prepareAnimationProps(animation){
+    var that  = this;
     var props = ['duration','delay','angle'];
 
     for(let i in props){
@@ -466,6 +492,26 @@ export class AppComponent {
         }
       });
     }
+    
+    Object.defineProperty(animation,'_ghost', {
+      get: function() {
+        if(!animation.__ghost){
+          var copy  = JSON.parse(that.avatarDesignCopy);
+          var po    = that.getPartAndOffset(animation.part,null,copy);
+
+          console.log(po.offset);
+          
+          if(po){
+            animation.__ghost             = po.part;
+            // animation.__ghost.position[0] = po.offset[0];
+            // animation.__ghost.position[1] = po.offset[1];
+          }
+        }
+
+        return animation.__ghost;
+      },
+      set: function(value) {}
+    });
   }
 
   copyAnimation(animation){
@@ -494,6 +540,14 @@ export class AppComponent {
     }
   }
   
+  playSet(setName){
+    if(this.avatarDesignCopy) this.avatarDesign = JSON.parse(this.avatarDesignCopy);
+    
+    for(let i in this.availableAnimations[setName]){
+      this.play(this.availableAnimations[setName][i],true);
+    }
+  }
+
   play(animation,noreset?){
     
     if(!noreset) this.avatarDesign = JSON.parse(this.avatarDesignCopy);
@@ -556,5 +610,43 @@ export class AppComponent {
         part.angle += frAngles;//*(i+1);
       },frameSize*i);
     }
+  }
+
+  // Face tracking
+  trackFace(){
+    var that = this;
+
+    var headtrackr = (<any>window).headtrackr;
+    var document   = (<any>window).document;
+    
+    var videoInput  = $('#camVideo')[0];
+    var canvasInput = $('#camCanvas')[0];
+    
+    var htracker = new headtrackr.Tracker({calcAngles : true, ui : false, headPosition : false});
+    htracker.init(videoInput, canvasInput);
+    htracker.start();
+    
+    // document.addEventListener("headtrackrStatus", function(event) {
+    //   if(that.avatarDesign){         
+    //   // that.avatarDesign.parts.head.position = [event.x,event.y];
+    //   }
+    // }, true);
+        
+    var offset,standardAngle;
+    document.addEventListener("facetrackingEvent", function( event ) {
+      if(that.avatarDesign){   
+        if(offset == null){
+          offset = [
+            event.x-that.avatarDesign.parts.head.position[0],
+            event.y-that.avatarDesign.parts.head.position[1]
+          ]; 
+          standardAngle = event.angle;
+        }
+
+        that.avatarDesign.parts.head.position = [-(event.x-offset[0]),event.y-offset[1]];
+        that.avatarDesign.parts.head.angleCenter = [40,40];
+        that.avatarDesign.parts.head.angle = Math.round(90-event.angle * 180 / Math.PI-standardAngle);
+      }
+    });
   }
 }
