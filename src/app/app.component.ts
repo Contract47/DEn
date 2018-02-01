@@ -1,6 +1,6 @@
 import { Http, Response } from '@angular/http';
 import { Component, OnInit, group, AfterViewInit } from '@angular/core';
-import { Engine } from './classes/engine';
+// import { Engine } from './classes/engine';
 import { DomSanitizer } from '@angular/platform-browser';
 import 'rxjs/add/operator/map';
 
@@ -38,6 +38,7 @@ export class AppComponent {
 
   avatarDesign;
   avatarDesignCopy;
+  mouths;
   animations = [];
   hoveredAnimation;
   selectedAnimationCoord;
@@ -60,7 +61,15 @@ export class AppComponent {
   }
 
   constructor(private http:Http, private sanitizer:DomSanitizer){
-    
+      // Function variant (script with function allows free manipulation of avatars at the cost of complexity)
+      this.http.get("http://raynesworld.com/testing/DerpEngine/Avatars/mouths.json").
+      map( response => response.json()).
+      subscribe(
+          data =>{
+            this.mouths = data;
+          }
+      );
+      
      // Function variant (script with function allows free manipulation of avatars at the cost of complexity)
      this.http.get("http://raynesworld.com/testing/DerpEngine/Avatars/Rayne.json").
      map( response => response.json()).
@@ -104,6 +113,7 @@ export class AppComponent {
   
   ngAfterViewInit(){
     this.trackFace();
+    this.startSpeechRecognition();
   }
 
   goToTab(tabName){
@@ -612,6 +622,77 @@ export class AppComponent {
     }
   }
 
+	startSpeechRecognition = function(){
+    
+    var that        = this;
+    var recognition = new ( (<any>window).SpeechRecognition || 
+                            (<any>window).webkitSpeechRecognition || 
+                            (<any>window).mozSpeechRecognition || 
+                            (<any>window).msSpeechRecognition)();
+    
+    recognition.lang 						= 'en-US';
+		recognition.continuous 			= false;
+		recognition.interimResults 	= true;
+		recognition.maxAlternatives = 5;
+		recognition.start();
+    
+    var startTime = 0;
+
+		recognition.onresult = function(event) {
+      
+			var result = event.results[0][0].transcript;
+      if(!event.results[0].isFinal){
+        if(!startTime) startTime = Date.now();
+        return;
+      }
+      
+      var duration = Date.now()-startTime;
+      startTime    = 0;
+
+      console.log(result);
+
+      // Repeat utterance
+      var msg = new SpeechSynthesisUtterance(result);
+      msg.lang = 'en-US';
+      // msg.rate = 1;
+      msg.voice = speechSynthesis.getVoices()[5];
+
+      // Remember current mouth status
+      var currentMouthShape = that.avatarDesign.parts.head.parts.mouth.shape;
+      var currentMouthFill  = that.avatarDesign.parts.head.parts.mouth.fill;
+      
+      var frag = duration / result.length; //70;
+      setTimeout(function(){ window.speechSynthesis.speak(msg) },frag);
+
+      var timeout=0;
+      
+      // Move mouth for every letter
+      for(let i=0; i<result.length; i++){
+        for(let j=0; j<result[i].length; j++){
+          timeout += frag;
+          let tmp = timeout; // specific scope for timeout callback
+
+          if(that.mouths[result[i][j]]){
+            setTimeout(function(){
+              that.avatarDesign.parts.head.parts.mouth.fill  = that.mouths[result[i][j]].fill;
+              that.avatarDesign.parts.head.parts.mouth.shape = that.mouths[result[i][j]].shape;
+            },tmp += 100)
+          }
+        }
+      }
+
+      // Reset mouth
+      setTimeout(function(){
+        that.avatarDesign.parts.head.parts.mouth.fill  = currentMouthFill;
+        that.avatarDesign.parts.head.parts.mouth.shape = currentMouthShape;
+      },timeout += 100)
+		};
+
+		recognition.onend = function(event){			
+			that.startSpeechRecognition();
+		}
+	}
+
   // Face tracking
   trackFace(){
     var that = this;
@@ -634,19 +715,19 @@ export class AppComponent {
         
     var offset,standardAngle;
     document.addEventListener("facetrackingEvent", function( event ) {
-      if(that.avatarDesign){   
-        if(offset == null){
-          offset = [
-            event.x-that.avatarDesign.parts.head.position[0],
-            event.y-that.avatarDesign.parts.head.position[1]
-          ]; 
-          standardAngle = event.angle;
-        }
+      // if(that.avatarDesign){   
+      //   if(offset == null){
+      //     offset = [
+      //       event.x-that.avatarDesign.parts.head.position[0],
+      //       event.y-that.avatarDesign.parts.head.position[1]
+      //     ]; 
+      //     standardAngle = event.angle;
+      //   }
 
-        that.avatarDesign.parts.head.position = [-(event.x-offset[0]),event.y-offset[1]];
-        that.avatarDesign.parts.head.angleCenter = [40,40];
-        that.avatarDesign.parts.head.angle = Math.round(90-event.angle * 180 / Math.PI-standardAngle);
-      }
+      //   that.avatarDesign.parts.head.position = [-(event.x-offset[0]),event.y-offset[1]];
+      //   that.avatarDesign.parts.head.angleCenter = [40,40];
+      //   that.avatarDesign.parts.head.angle = Math.round(90-event.angle * 180 / Math.PI-standardAngle);
+      // }
     });
   }
 }
