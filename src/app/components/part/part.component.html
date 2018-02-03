@@ -1,14 +1,20 @@
-<svg:polyline *ngIf="part && part.shape && !part.hidden"
-  [attr.points]="part.shape.join(',')"
-  [attr.style]="style"
-  [attr.transform]="transform"
-/>
+<svg:g [style]="rotateXY">
+  <svg:polyline *ngIf="part && shape.length >= 2 && !part.hidden"
+    [attr.points]="shape"
+    [attr.style]="style"
+    [attr.transform]="transform"
+  />
 
-<svg:g *ngFor="let subpart of subparts" app-part [part]="part.parts[subpart]" [attr.transform]="transform"/>
+  <svg:g  *ngFor="let subpart of subparts" app-part 
+          [part]="part.parts[subpart]" 
+          [name]="subpart" 
+          [attr.style]="style"
+          [attr.transform]="transform"/>
 
-<!-- "linear-gradient(45deg red 10%, blue 50%, orange 100%)" -->
-<svg *ngIf="gradient">
-  <linearGradient id="linear" x1="0" y1="0" x2="1" y2="1">
-    <stop *ngFor="let color of offsetColors" [attr.offset]="color[1]"   [attr.stop-color]="color[0]"/>
-  </linearGradient>
-</svg>
+  <!-- "linear-gradient(45deg red 10%, blue 50%, orange 100%)" -->
+  <svg *ngIf="gradient">
+    <linearGradient [attr.id]="'linear'+name" x1="0" y1="0" x2="1" y2="1">
+      <stop *ngFor="let color of offsetColors" [attr.offset]="color[1]"   [attr.stop-color]="color[0]"/>
+    </linearGradient>
+  </svg>
+</svg:g>

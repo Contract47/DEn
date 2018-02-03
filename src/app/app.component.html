@@ -18,7 +18,11 @@
             (mousemove)="draw($event)"
             (mouseup)="stopDrawing($event)"
     >
-        <svg:g *ngFor="let part of parts" app-part [part]="avatarDesign.parts[part]" [attr.transform]="transform"/>
+        <svg:g *ngFor="let part of parts" 
+            app-part 
+            [part]="avatarDesign.parts[part]"
+            [name]="part"
+            [attr.transform]="transform"/>
     </svg>
     <svg id="animationCanvas" *ngIf="shownTab=='animate' && !animationsHidden"    
         (mousedown)="startDrawingAnimation($event)"
@@ -34,7 +38,7 @@
                 (mouseover)="setHovered(animation)"/>
         
             <!-- Animation Ghosts -->
-            <svg:g app-part [part]="animation._ghost" [attr.transform]="transform"/>
+            <!-- <svg:g app-part [part]="animation._ghost" [attr.transform]="transform"/> -->
         </ng-template>
 
         <ng-template 
@@ -80,7 +84,9 @@
                 <label>posx</label>
                 <label>posy</label>
                 <label>angCtr</label>
-                <label>angle</label>
+                <label>angleZ</label>
+                <label>angleX</label>
+                <label>angleY</label>
                 <label>zindex</label>
                 <label>shape</label>
             </div>
@@ -99,6 +105,7 @@
                                 {{name}}
                     </option>
                 </select>
+                <input [(ngModel)]="newAnimationName"/>
                 <button id="addAnimationBtn" (click)="addAnimation()">Add Animation</button>
                 <button (click)="playSelected()">Play Selected</button>
                 <button (click)="animationsHidden = !animationsHidden">Hide Anim.</button>
@@ -111,7 +118,9 @@
                     <label>dur</label>
                     <label>delay</label>
                     <label>angCtr</label>
-                    <label>angAng</label>
+                    <label>angZ</label>
+                    <label>angX</label>
+                    <label>angY</label>
                     <label>zindex</label>
                 </div>
                 <div *ngFor="let animation of animations">
@@ -120,16 +129,21 @@
                     <input [(ngModel)]="animation._path"/>
                     <input [(ngModel)]="animation._duration"/>
                     <input [(ngModel)]="animation._delay"/>
-                        <input [(ngModel)]="animation._angleCenter"/>
-                        <input [(ngModel)]="animation._angle"/>
+                    <input [(ngModel)]="animation._angleCenter"/>
+                    <input [(ngModel)]="animation._angleZ"/>
+                    <input [(ngModel)]="animation._angleX"/>
+                    <input [(ngModel)]="animation._angleY"/>
                     <button (click)="play(animation)">Play</button>
                     <button (click)="copyAnimation(animation)">Copy</button>
+                    <button (click)="invertAnimation(animation)">Inv</button>
                     <button (click)="deleteAnimation(animation)">Del</button>
                 </div>
+                <button (click)="addSubanimation()">+</button>
             </div>
         </div>
 
         <div id="testingTab" *ngIf="shownTab=='testing'">
+            <input [(ngModel)]="utterance" (keypress)="executeUtterance($event)"/>
             <button *ngFor="let animation of availableAnimationNames" (click)="playSet(animation)">{{animation}}</button>
         </div>
     </div>

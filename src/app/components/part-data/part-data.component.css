@@ -7,3 +7,7 @@ input{
 .subpart{
     margin-left: 10px;
 }
+
+.edited{
+    background: lightblue;
+}

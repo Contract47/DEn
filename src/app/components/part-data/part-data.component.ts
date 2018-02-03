@@ -13,17 +13,15 @@ export class PartDataComponent implements OnInit {
 
   @Input() part;
   @Input() parentPart;
+
+  
   @Input() set name(name){
     if(!this.oldPartName) this.oldPartName = name;
-    else{
-      this.parentPart[name] = this.parentPart[this.oldPartName];
-      delete this.parentPart[this.oldPartName];
-      this.oldPartName = name;
-    }
+    this.partName = name;
   };
 
   get name(){
-    return this.oldPartName;
+    return this.partName;
   }
 
   set posX(x){
@@ -51,6 +49,7 @@ export class PartDataComponent implements OnInit {
   }
 
   get shape(){
+    if(!this.part.shape) this.part.shape = [];
     return this.part.shape.join(',');
   }
 
@@ -58,12 +57,12 @@ export class PartDataComponent implements OnInit {
     return this.part.parts? Object.keys(this.part.parts) : null;
   }
 
-  get angle(){
-    return this.part.angle;
-  }
-  set angle(pt){
-    this.part.angle = Number(pt);
-  }
+  get angleX(){   return this.part.angleX; }
+  set angleX(pt){ this.part.angleX = Number(pt); }
+  get angleY(){   return this.part.angleY; }
+  set angleY(pt){ this.part.angleY = Number(pt); }
+  get angleZ(){   return this.part.angleZ; }
+  set angleZ(pt){ this.part.angleZ = Number(pt); }
 
   get angleCenter(){
     return this.part.angleCenter? this.part.angleCenter.join(',') :null
@@ -79,6 +78,13 @@ export class PartDataComponent implements OnInit {
     this.part.zindex = Number(zindex);
   }
   
+  applyName(){
+    var part = this.parentPart[this.oldPartName];
+    delete this.parentPart[this.oldPartName];
+    this.parentPart[this.partName] = part;
+    this.oldPartName = this.partName;      
+  }
+
   copyPart(){
     this.parentPart[this.name+'Copy'] = JSON.parse(JSON.stringify(this.part));
   }

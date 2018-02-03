@@ -39,7 +39,20 @@ export class AppComponent {
   avatarDesign;
   avatarDesignCopy;
   mouths;
-  animations = [];
+
+  _animations = [];
+  set animations(animations){
+    this._animations = animations;
+
+    for(let i in this._animations) this.prepareAnimationProps(this._animations[i]);
+
+    (<any>window).animations           = this.animations;
+    (<any>window).availableAnimations  = this.availableAnimations;
+  }
+  get animations(){
+    return this._animations;
+  }
+
   hoveredAnimation;
   selectedAnimationCoord;
 
@@ -48,21 +61,61 @@ export class AppComponent {
     fill: "black", 
     stroke: "red", 
     position: [0,0],
-    angle: null,
+    angleX: null,
+    angleY: null,
+    angleZ: null,
     angleCenter: null
   };
 
+  partKeys = [];
   get parts(){
-    return Object.keys(this.avatarDesign.parts);
+    // return Object.keys(this.avatarDesign.parts);
+
+    var parts = this.avatarDesign.parts;
+    var keys  = Object.keys(parts);
+    
+    keys = keys.sort(function(a,b) {
+      return  ( (parts[a].zindex || 0) > (parts[b].zindex || 0) )? 1 : 
+              ( (parts[b].zindex || 0) > (parts[a].zindex || 0) )? -1 :
+              0;
+    });
+
+    for(let key in keys) this.partKeys[key] = keys[key];
+    
+    return this.partKeys;
   }
 
+  oldTransform;
   get transform(){
-    return this.avatarDesign.position? 'translate('+this.avatarDesign.position[0]+','+this.avatarDesign.position[1]+')' : '';
+    var transform = this.avatarDesign.position? 
+                      'translate('+this.avatarDesign.position[0]+','+this.avatarDesign.position[1]+')' : '';
+    if(transform != this.oldTransform) this.oldTransform = transform;
+
+    return this.oldTransform;
   }
 
   constructor(private http:Http, private sanitizer:DomSanitizer){
+
+      var that = this;
+
+      (<any>window).stringifiedAnimations = function(){
+        var clone = $.extend({},that.availableAnimations);
+
+        for(let animationName in clone){
+          for(let i in clone[animationName]){
+            var props = Object.keys(clone[animationName][i]);
+
+            for(let j in props){
+              if(props[j].indexOf('_') == 0) delete clone[animationName][i][props[j]];
+            }
+          }
+        }
+    
+        return JSON.stringify(clone);
+      }
+
       // Function variant (script with function allows free manipulation of avatars at the cost of complexity)
-      this.http.get("http://raynesworld.com/testing/DerpEngine/Avatars/mouths.json").
+      this.http.get("https://raynesworld.com/testing/DerpEngine/Avatars/mouths.json").
       map( response => response.json()).
       subscribe(
           data =>{
@@ -71,30 +124,42 @@ export class AppComponent {
       );
       
      // Function variant (script with function allows free manipulation of avatars at the cost of complexity)
-     this.http.get("http://raynesworld.com/testing/DerpEngine/Avatars/Rayne.json").
+     this.http.get("https://raynesworld.com/testing/DerpEngine/Avatars/Rayne2.json").
      map( response => response.json()).
      subscribe(
          data =>{
            this.avatarDesign = data;
-           (<any>window).avatarDesign = this.avatarDesign;
-           (<any>window).animations   = this.animations;
+
+           // Attach to window for live access via console
+           (<any>window).avatarDesign         = this.avatarDesign;
+           (<any>window).animations           = this.animations;
+           (<any>window).availableAnimations  = this.availableAnimations;
          }
      );
 
-     this.availableAnimations["NewAnimation"] = this.animations;
+    //  this.availableAnimations["NewAnimation"] = this.animations;
 
-     var animationNames = ["wave"];
+    //  var animationNames = ["wave"];
 
-     for(let i in animationNames){
-      this.http.get("http://raynesworld.com/testing/DerpEngine/Animations/"+animationNames[i]+".json").
+     this.http.get("https://raynesworld.com/testing/DerpEngine/Animations/Rayne2.json").
       map( response => response.json()).
       subscribe(
           data =>{
-            for(let i in data) this.prepareAnimationProps(data[i]);
-            this.availableAnimations[animationNames[i]] = data;
+            this.availableAnimations = data;
+            (<any>window).availableAnimations  = this.availableAnimations;
           }
       );
-    }
+
+    //  for(let i in animationNames){
+    //   this.http.get("https://raynesworld.com/testing/DerpEngine/Animations/"+animationNames[i]+".json").
+    //   map( response => response.json()).
+    //   subscribe(
+    //       data =>{
+    //         for(let i in data) this.prepareAnimationProps(data[i]);
+    //         this.availableAnimations[animationNames[i]] = data;
+    //       }
+    //   );
+    // }
   }
 
   ngOnInit(){
@@ -141,7 +206,9 @@ export class AppComponent {
         fill: "none", 
         stroke: "black", 
         position: [0,0],
-        angle: null,
+        angleX: null,
+        angleY: null,
+        angleZ: null,
         angleCenter: null
       };
 
@@ -458,12 +525,26 @@ export class AppComponent {
     }
   }
 
-  addAnimation(animation){
+  newAnimationName;
+  addAnimation(){
+    if(this.availableAnimations[this.newAnimationName]){
+      alert('Animation "'+this.newAnimationName+'" already exists!');
+      return;
+    }
+
+    this.availableAnimations[this.newAnimationName] = [];
+    this.animations = this.availableAnimations[this.newAnimationName];
+    this.addSubanimation();
+  }
+
+  addSubanimation(animation?){
     animation = animation || {
       part:         "none",
       path:         [],
       angleCenter:  null,
-      angle:        null,
+      angleX:       null,
+      angleY:       null,
+      angleZ:       null,
       duration:     1000,
       delay:        null
     };
@@ -475,7 +556,7 @@ export class AppComponent {
 
   prepareAnimationProps(animation){
     var that  = this;
-    var props = ['duration','delay','angle'];
+    var props = ['duration','delay','angleX','angleY','angleZ'];
 
     for(let i in props){
       Object.defineProperty(animation,'_'+props[i], {
@@ -525,7 +606,17 @@ export class AppComponent {
   }
 
   copyAnimation(animation){
-    this.addAnimation(JSON.parse(JSON.stringify(animation)));
+    this.addSubanimation(JSON.parse(JSON.stringify(animation)));
+  }
+
+  invertAnimation(animation){
+    var oldPath = $.extend([],animation.path);
+    animation.path.length = 0;  // clear
+
+    for(let i=oldPath.length-1; i>=0; i-=2){
+      animation.path.push(oldPath[i-1]);
+      animation.path.push(oldPath[i]);
+    }
   }
 
   deleteAnimation(animation){
@@ -551,6 +642,7 @@ export class AppComponent {
   }
   
   playSet(setName){
+    if(!this.availableAnimations[setName]) return;
     if(this.avatarDesignCopy) this.avatarDesign = JSON.parse(this.avatarDesignCopy);
     
     for(let i in this.availableAnimations[setName]){
@@ -602,23 +694,28 @@ export class AppComponent {
     }
 
     var center  = animation.angleCenter || [0,0];
-    var angle   = animation.angle;
-    
-    if(angle === null) return;
 
-    var frameSize = 10;
-    var fragCount = duration/frameSize;
+    var angles = ['angleX','angleY','angleZ'];
 
-    var frAngles  = angle / fragCount;
+    for(let i in angles){
+      var angle  = animation[angles[i]];
+      
+      if(!angle) continue;
 
-    part.angleCenter = center;
+      var frameSize = 10;
+      var fragCount = duration/frameSize;
 
-    if(!part.angle) part.angle = 0;
+      var frAngles  = angle / fragCount;
 
-    for(let i=0; i<fragCount; i++){
-      setTimeout(function(){
-        part.angle += frAngles;//*(i+1);
-      },frameSize*i);
+      part.angleCenter = center;
+
+      if(!part[angles[i]]) part[angles[i]] = 0;
+
+      for(let j=0; j<fragCount; j++){
+        setTimeout(function(){
+          part[angles[i]] += frAngles;//*(i+1);
+        },frameSize*j);
+      }
     }
   }
 
@@ -651,47 +748,68 @@ export class AppComponent {
 
       console.log(result);
 
-      // Repeat utterance
-      var msg = new SpeechSynthesisUtterance(result);
-      msg.lang = 'en-US';
-      // msg.rate = 1;
-      msg.voice = speechSynthesis.getVoices()[5];
-
-      // Remember current mouth status
-      var currentMouthShape = that.avatarDesign.parts.head.parts.mouth.shape;
-      var currentMouthFill  = that.avatarDesign.parts.head.parts.mouth.fill;
-      
-      var frag = duration / result.length; //70;
-      setTimeout(function(){ window.speechSynthesis.speak(msg) },frag);
-
-      var timeout=0;
-      
-      // Move mouth for every letter
-      for(let i=0; i<result.length; i++){
-        for(let j=0; j<result[i].length; j++){
-          timeout += frag;
-          let tmp = timeout; // specific scope for timeout callback
-
-          if(that.mouths[result[i][j]]){
-            setTimeout(function(){
-              that.avatarDesign.parts.head.parts.mouth.fill  = that.mouths[result[i][j]].fill;
-              that.avatarDesign.parts.head.parts.mouth.shape = that.mouths[result[i][j]].shape;
-            },tmp += 100)
-          }
-        }
-      }
-
-      // Reset mouth
-      setTimeout(function(){
-        that.avatarDesign.parts.head.parts.mouth.fill  = currentMouthFill;
-        that.avatarDesign.parts.head.parts.mouth.shape = currentMouthShape;
-      },timeout += 100)
-		};
+      that.moveMouth(result,duration);
+    }
 
 		recognition.onend = function(event){			
 			that.startSpeechRecognition();
 		}
-	}
+  }
+
+  moveMouth(text,duration?){
+
+    var that = this;
+
+    text = text.toLowerCase();
+
+    // Repeat utterance
+    var msg = new SpeechSynthesisUtterance(text);
+    msg.lang = 'en-US';
+    msg.rate = 1.1;
+    msg.voice = speechSynthesis.getVoices()[5];
+    
+    // Remember current mouth status
+    var currentMouthShape = this.avatarDesign.parts.head.parts.mouth.shape;
+    var currentMouthFill  = this.avatarDesign.parts.head.parts.mouth.fill;
+    
+    var frag = duration? duration / text.length : 57;
+    setTimeout(function(){ window.speechSynthesis.speak(msg) },duration? frag : 0);
+
+    var timeout=0;
+    
+    var words = text.split(/[\s]+/);
+
+    // Move mouth for every letter
+    for(let i=0; i<words.length; i++){       // words
+
+      setTimeout(function(){ that.playSet(words[i]); },timeout);
+
+      for(let j=0; j<words[i].length; j++){  //letters
+        timeout += frag;
+        let tmp = timeout; // specific scope for timeout callback
+
+        if(this.mouths[words[i][j]]){
+          setTimeout(function(){
+            that.avatarDesign.parts.head.parts.mouth.fill  = that.mouths[words[i][j]].fill;
+            that.avatarDesign.parts.head.parts.mouth.shape = that.mouths[words[i][j]].shape;
+          },tmp += 100)
+        }
+      }
+    }
+
+    // Reset mouth
+    setTimeout(function(){
+      that.avatarDesign.parts.head.parts.mouth.fill  = currentMouthFill;
+      that.avatarDesign.parts.head.parts.mouth.shape = currentMouthShape;
+    },timeout += 100);
+  }
+  
+  utterance;
+  executeUtterance(event){
+    if(event.keyCode != 13) return;
+
+    this.moveMouth(this.utterance);
+  }
 
   // Face tracking
   trackFace(){

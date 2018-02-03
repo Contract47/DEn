@@ -1,15 +1,19 @@
 <input class="selected" type="checkbox" [(ngModel)]="part._selected"/>
-<input class="name"     [(ngModel)]="name"/>
+<input class="name"     [(ngModel)]="name" 
+                        (keypress)="($event.keyCode==13)? applyName() : null"
+                        [class]="partName !== oldPartName? 'edited' : ''"/>
 <input class="fill"     [(ngModel)]="part.fill"/>
 <input class="stroke"   [(ngModel)]="part.stroke"/>
 <input class="posX"     [(ngModel)]="posX"/>
 <input class="posY"     [(ngModel)]="posY"/>
 <input class="angleC"   [(ngModel)]="angleCenter"/>
-<input class="angleA"   [(ngModel)]="angle"/>
+<input class="angleA"   [(ngModel)]="angleZ"/>
+<input class="angleA"   [(ngModel)]="angleX"/>
+<input class="angleA"   [(ngModel)]="angleY"/>
 
 <input class="zindex"   [(ngModel)]="zindex"/>
 <!-- <input class="zindex"   value="'+newDesign.parts[name].zindex+'"/> -->
-<input *ngIf="part.shape" class="shape" [(ngModel)]="shape"/>
+<input class="shape" [(ngModel)]="shape"/>
 <input class="hidden" type="checkbox" [(ngModel)]="part.hidden"/>
 <button class="copyBtn" (click)="copyPart()">copy</button>
 <button class="delBtn" (click)="deletePart()">del</button>
